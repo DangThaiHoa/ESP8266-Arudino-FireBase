@@ -55,9 +55,15 @@ void loop() {
   Hum = dht.readHumidity();
   Temp = dht.readTemperature();
   Serial.println(Temp);
-  Serial.println(Hum);
+  Serial.println(Hum);  
 
   //Update Hum & Temp Data FireBase
-  Firebase.setFloat(FBData, path + "/DHT11/hum", Hum);
-  Firebase.setFloat(FBData, path + "/DHT11/temp", Temp);
+  if (isnan(Hum) || isnan(Temp)){
+    Serial.println("Error read DHT11");
+    Firebase.setString(FBData, path + "/DHT11/error", "Read/Connect");
+  }else{
+    Firebase.setString(FBData, path + "/DHT11/error", "Non");    
+    Firebase.setFloat(FBData, path + "/DHT11/hum", Hum);
+    Firebase.setFloat(FBData, path + "/DHT11/temp", Temp);
+  }
 }
