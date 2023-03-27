@@ -5,10 +5,11 @@
 #include <DHT.h>
 #include <ThreeWire.h>  
 #include <RtcDS1302.h>
+#include <Servo.h>
 
 //ESP8266/FireBase config
-#define WIFI_SSID "Home 2.4Ghz"
-#define WIFI_PASSWORD "homecafe24"
+#define WIFI_SSID "Đặng Thái Hòa"
+#define WIFI_PASSWORD "12345678a"
 
 #define FIREBASE_HOST "homecontrol-60d7d-default-rtdb.asia-southeast1.firebasedatabase.app"
 #define FIREBASE_AUTH "30OHsxJ78Z75ggJgcSI0Zd3COc3E55h6SdiSssuN"
@@ -36,6 +37,9 @@ DHT dht(DHTPIN, DHTTYPE);
 ThreeWire myWire(D3,D2,D4); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
 #define countof(a) (sizeof(a) / sizeof(a[0]))
+
+//Servo config
+Servo Roofservo;
 
 //Var
 float Hum; 
@@ -95,6 +99,9 @@ void setup() {
         Serial.println("RTC is older than compile time!  (Updating DateTime)");
         Rtc.SetDateTime(compiled);
     }
+
+    //Servo Config
+    Roofservo.attach(D5);
 }
 
 void loop() {
@@ -108,6 +115,9 @@ void loop() {
 
   //Get DateTime
   getDS1302();
+
+  //Get Servo Angle
+  ServoRoof();
 
 }
 
@@ -157,6 +167,13 @@ void printDateTime(const RtcDateTime& dt)
             dt.Hour(),
             dt.Minute(),
             dt.Second() );
+}
+
+void ServoRoof(){
+  if(Firebase.getInt(FBData, path + "/Servo/roof")){
+    int angle = FBData.intData();
+    Roofservo.write(angle);
+  }
 }
 
 
