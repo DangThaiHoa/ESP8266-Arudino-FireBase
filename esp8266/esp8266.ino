@@ -8,8 +8,11 @@
 #include <Servo.h>
 
 //ESP8266/FireBase config
-#define WIFI_SSID "Đặng Thái Hòa"
-#define WIFI_PASSWORD "12345678a"
+// #define WIFI_SSID "Đặng Thái Hòa"
+// #define WIFI_PASSWORD "12345678a"
+
+#define WIFI_SSID "Home 2.4Ghz"
+#define WIFI_PASSWORD "homecafe24"
 
 #define FIREBASE_HOST "homecontrol-60d7d-default-rtdb.asia-southeast1.firebasedatabase.app"
 #define FIREBASE_AUTH "30OHsxJ78Z75ggJgcSI0Zd3COc3E55h6SdiSssuN"
@@ -51,6 +54,8 @@ char datestring[20];
 char timestring[20];  
 
 void setup() {
+  pinMode(D6,OUTPUT);
+  digitalWrite(D6,HIGH);
   Serial.begin(115200);
 
   //ESP8266/FireBase config
@@ -116,7 +121,7 @@ void loop() {
   //Get DateTime
   getDS1302();
 
-  //Get Servo Angle
+  //Get Servo Angle 
   ServoRoof();
 
 }
@@ -172,7 +177,18 @@ void printDateTime(const RtcDateTime& dt)
 void ServoRoof(){
   if(Firebase.getInt(FBData, path + "/Servo/roof")){
     int angle = FBData.intData();
-    Roofservo.write(angle);
+    if(angle == 180){   
+      for (angle = 0; angle <= 180; angle += 1) {  
+        Roofservo.write(angle); 
+        delay(50);       
+      }
+    }else{
+        for (angle = 180; angle >= 0; angle -= 1) {  
+      Roofservo.write(angle);               
+      delay(50);   
+      }
+    }
+    Serial.print(angle);
   }
 }
 
