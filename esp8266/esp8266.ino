@@ -8,11 +8,11 @@
 #include <Servo.h>
 
 //ESP8266/FireBase config
-// #define WIFI_SSID "Đặng Thái Hòa"
-// #define WIFI_PASSWORD "12345678a"
+#define WIFI_SSID "Đặng Thái Hòa"
+#define WIFI_PASSWORD "12345678a"
 
-#define WIFI_SSID "Home 2.4Ghz"
-#define WIFI_PASSWORD "homecafe24"
+// #define WIFI_SSID "Home 2.4Ghz"
+// #define WIFI_PASSWORD "homecafe24"
 
 #define FIREBASE_HOST "homecontrol-60d7d-default-rtdb.asia-southeast1.firebasedatabase.app"
 #define FIREBASE_AUTH "30OHsxJ78Z75ggJgcSI0Zd3COc3E55h6SdiSssuN"
@@ -23,7 +23,7 @@ String path = "/";
 FirebaseJson json;
 
 //DHT config
-#define DHTPIN D1     
+#define DHTPIN 5 //D1    
 #define DHTTYPE DHT11  
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -45,7 +45,7 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 Servo Roofservo;
 
 //Led config
-int Led[] = {"D6","D7","D8"};
+int Led[] = {12,13,15};//D6/D7/D8
 
 //Var
 float Hum; 
@@ -111,7 +111,7 @@ void setup() {
 
     //Led config
     for(int i = 0; i<3; i++){
-      pinMode(led[i],OUTPUT);      
+      pinMode(Led[i],OUTPUT);      
     }
 }
 
@@ -131,7 +131,7 @@ void loop() {
   ServoRoof();
 
   //Control Led 
-  Led();
+  ControlLed();
 
 }
 
@@ -184,32 +184,32 @@ void printDateTime(const RtcDateTime& dt)
 }
 
 void ServoRoof(){
-  if(Firebase.getInt(FBData, path + "/Servo/roof")){  
+  if(Firebase.getString(FBData, path + "/Servo/trigger")){
+    String trig = FBData.stringData();
+    if(Firebase.getInt(FBData, path + "/Servo/roof") && trig == "Trig"){  
     int angle = FBData.intData();
     if(angle == 180){   
       for (angle = 0; angle <= 180; angle += 1) {  
-        Roofservo.write(angle); 
-        delay(10);       
+        Roofservo.write(angle);
       }
     }else{
-        for (angle = 180; angle >= 0; angle -= 1) {  
-      Roofservo.write(angle);               
-      delay(10);   
-      }
+      for (angle = 180; angle >= 0; angle -= 1) {  
+      Roofservo.write(angle);
+        }
+      }   
     }
-    Serial.print(angle);
   }
 }
 
-void Led(){
+void ControlLed(){
 
   int SLed[] = {0,0,0};
-  int refLed[] = {"led1","led2","led3",}
+  String refLed[] = {"led1","led2","led3"};
 
-  for(int i = 0; i<2; i++){
+  for(int i = 0; i<3; i++){
     if(Firebase.getInt(FBData, path + "/LED/" + refLed[i])){  
-      int SLed[i] = Firebase.intData();
-      digitalWrite(led[i],SLed[i]);
+      SLed[i] = FBData.intData();
+      digitalWrite(Led[i],SLed[i]);
     }  
   }
 }
