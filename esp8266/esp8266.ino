@@ -54,8 +54,6 @@ char datestring[20];
 char timestring[20];  
 
 void setup() {
-  pinMode(D6,OUTPUT);
-  digitalWrite(D6,HIGH);
   Serial.begin(115200);
 
   //ESP8266/FireBase config
@@ -175,17 +173,17 @@ void printDateTime(const RtcDateTime& dt)
 }
 
 void ServoRoof(){
-  if(Firebase.getInt(FBData, path + "/Servo/roof")){
+  if(Firebase.getInt(FBData, path + "/Servo/roof")){  
     int angle = FBData.intData();
     if(angle == 180){   
       for (angle = 0; angle <= 180; angle += 1) {  
         Roofservo.write(angle); 
-        delay(50);       
+        delay(10);       
       }
     }else{
         for (angle = 180; angle >= 0; angle -= 1) {  
       Roofservo.write(angle);               
-      delay(50);   
+      delay(10);   
       }
     }
     Serial.print(angle);
