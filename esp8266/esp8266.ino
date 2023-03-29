@@ -44,6 +44,9 @@ RtcDS1302<ThreeWire> Rtc(myWire);
 //Servo config
 Servo Roofservo;
 
+//Led config
+int Led[] = {"D6","D7","D8"};
+
 //Var
 float Hum; 
 float Temp;
@@ -103,8 +106,13 @@ void setup() {
         Rtc.SetDateTime(compiled);
     }
 
-    //Servo Config
+    //Servo config
     Roofservo.attach(D5);
+
+    //Led config
+    for(int i = 0; i<3; i++){
+      pinMode(led[i],OUTPUT);      
+    }
 }
 
 void loop() {
@@ -121,6 +129,9 @@ void loop() {
 
   //Get Servo Angle 
   ServoRoof();
+
+  //Control Led 
+  Led();
 
 }
 
@@ -187,6 +198,19 @@ void ServoRoof(){
       }
     }
     Serial.print(angle);
+  }
+}
+
+void Led(){
+
+  int SLed[] = {0,0,0};
+  int refLed[] = {"led1","led2","led3",}
+
+  for(int i = 0; i<2; i++){
+    if(Firebase.getInt(FBData, path + "/LED/" + refLed[i])){  
+      int SLed[i] = Firebase.intData();
+      digitalWrite(led[i],SLed[i]);
+    }  
   }
 }
 
