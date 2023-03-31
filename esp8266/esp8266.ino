@@ -141,29 +141,29 @@ void getDHT11(){
 
   if (isnan(Hum) || isnan(Temp)){
     Serial.println("Error read DHT11");
-    Firebase.setString(FBData, path + "/DHT11/error", "Read/Connect");
+    Firebase.setString(FBData, path + "/ESP8266/DHT11/error", "Read/Connect");
   }else{
-    Firebase.setString(FBData, path + "/DHT11/error", "Non");    
-    Firebase.setFloat(FBData, path + "/DHT11/hum", Hum);
-    Firebase.setFloat(FBData, path + "/DHT11/temp", Temp);
+    Firebase.setString(FBData, path + "/ESP8266/DHT11/error", "Non");    
+    Firebase.setFloat(FBData, path + "/ESP8266/DHT11/hum", Hum);
+    Firebase.setFloat(FBData, path + "/ESP8266/DHT11/temp", Temp);
   }
 }
 
 void getWaterSensor(){
   WaterData = analogRead(WATERSENSORPIN);
-  Firebase.setInt(FBData, path + "/WATERSENSOR/waterdata", WaterData);
+  Firebase.setInt(FBData, path + "/ESP8266/WATERSENSOR/waterdata", WaterData);
 }
 
 void getDS1302(){
   RtcDateTime now = Rtc.GetDateTime();
     if (!now.IsValid())
     {
-      Firebase.setString(FBData, path + "/DS1302/error", "Read/Connect/Battery"); 
+      Firebase.setString(FBData, path + "/ESP8266/DS1302/error", "Read/Connect/Battery"); 
     }else{
       printDateTime(now);
-      Firebase.setString(FBData, path + "/DS1302/error", "Non");    
-      Firebase.setString(FBData, path + "/DS1302/date", datestring);
-      Firebase.setString(FBData, path + "/DS1302/time", timestring);   
+      Firebase.setString(FBData, path + "/ESP8266/DS1302/error", "Non");    
+      Firebase.setString(FBData, path + "/ESP8266/DS1302/date", datestring);
+      Firebase.setString(FBData, path + "/ESP8266/DS1302/time", timestring);   
     }
 }
 
@@ -184,9 +184,9 @@ void printDateTime(const RtcDateTime& dt)
 }
 
 void ServoRoof(){
-  if(Firebase.getString(FBData, path + "/Servo/trigger")){
+  if(Firebase.getString(FBData, path + "/ESP8266/Servo/trigger")){
     String trig = FBData.stringData();
-    if(Firebase.getInt(FBData, path + "/Servo/roof") && trig == "Trig"){  
+    if(Firebase.getInt(FBData, path + "/ESP8266/Servo/roof") && trig == "Trig"){  
     int angle = FBData.intData();
     if(angle == 180){   
       for (angle = 0; angle <= 180; angle += 1) {  
@@ -207,7 +207,7 @@ void ControlLed(){
   String refLed[] = {"led1","led2","led3"};
 
   for(int i = 0; i<3; i++){
-    if(Firebase.getInt(FBData, path + "/LED/" + refLed[i])){  
+    if(Firebase.getInt(FBData, path + "/ESP8266/LED/" + refLed[i])){  
       SLed[i] = FBData.intData();
       digitalWrite(Led[i],SLed[i]);
     }  
