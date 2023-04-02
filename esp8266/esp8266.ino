@@ -1,25 +1,90 @@
 //LIB
 #include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#include <EEPROM.h>
 #include "FirebaseESP8266.h"
 #include <DHT.h>
 #include <ThreeWire.h>  
 #include <RtcDS1302.h>
 #include <Servo.h>
 
+//FactoryReset Config 
+int buttonPin = 0;
+int buttonState = 1;     // current state of the button
+int lastButtonState = 0; // previous state of the button
+int startPressed = 0;    // the moment the button was pressed
+int endPressed = 0;      // the moment the button was released
+int holdTime = 0;        // how long the button was hold
+int idleTime = 0;  
+
+//Config ESP8266 AP
+#define APSSID "ESP8266_Config"
+#define APPSK "esp8266config"
+
+ESP8266WebServer server(80);
+
+//WebServerHTML
+const char main_page[] PROGMEM = R"=====(
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thiết lập ESP8266</title>
+</head>
+
+<body>
+    <h3 style="text-align: center;">Hãy Nhập Tên WiFi và Mật Khẩu Để Thiết Lập Mạch ESP8266</h3>
+    <form action="/ConfigESP" style="text-align: center;">
+        <h3>Tên WIFI:</h3><input name="ssid" type="text" /><br>
+        <h3>Mật Khẩu:</h3><input name="pass" type="text" /><br><br>
+        <input type="submit" value="Xác Nhận" />
+    </form>
+</body>
+
+</html>
+)=====";
+String html = main_page;
+
+const char success_page[] PROGMEM = R"=====(
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thiết lập ESP8266</title>
+</head>
+
+<body>
+    <h3 style="text-align: center;">Đã thiết lập thiết bị ESP82666, Hãy quay lại ứng dụng và kiểm tra, nếu chưa được hãy thiết lập lại</h3>
+</body>
+
+</html>
+)=====";
+String Shtml = success_page;
+
+//ValConfig
+String UID;
+String WIFI_SSID;
+String WIFI_PASSWORD;
+String GUID;
+String GWIFI_SSID;
+String GWIFI_PASSWORD;
+int eepromOffset = 0;
+
 //ESP8266/FireBase config
-#define WIFI_SSID "Đặng Thái Hòa"
-#define WIFI_PASSWORD "12345678a"
-
-// #define WIFI_SSID "Home 2.4Ghz"
-// #define WIFI_PASSWORD "homecafe24"
-
-#define FIREBASE_HOST "homecontrol-60d7d-default-rtdb.asia-southeast1.firebasedatabase.app"
-#define FIREBASE_AUTH "30OHsxJ78Z75ggJgcSI0Zd3COc3E55h6SdiSssuN"
+#define FIREBASE_HOST "homecontrol-526d0-default-rtdb.asia-southeast1.firebasedatabase.app"
+#define FIREBASE_AUTH "DqSPT3XALNg7QRlWd0AYzbvcYp0O2799ZaFRUL4e"
 
 FirebaseData FBData;
 
-String path = "/HomeControl/ESP8266/DATA/";
+String path = "/";
 FirebaseJson json;
 
 //DHT config
@@ -54,31 +119,120 @@ float Temp;
 int WaterData;
 
 char datestring[20];
-char timestring[20];  
+char timestring[20];
+
+//FunctionConfigESP8266
+
+void Connecting() {
+  UID = server.arg("UID");
+  String webServer = main_page;
+  server.send(200, "text/html", webServer);
+}
+
+void ConfigESP8266(){
+  WIFI_SSID = server.arg("ssid");
+  WIFI_PASSWORD = server.arg("pass");
+  if (WIFI_SSID.length() > 0 && WIFI_PASSWORD.length() > 0) {
+          Serial.println("");
+        Serial.println("clearing eeprom");
+        for (int i = 0; i < 255; ++i) {
+          EEPROM.write(i, 0);
+        }
+        Serial.println("writing eeprom ssid:");
+        for (int i = 0; i < WIFI_SSID.length(); ++i)
+        {
+          EEPROM.write(i, WIFI_SSID[i]);
+        }
+        Serial.println("writing eeprom pass:");
+        for (int i = 0; i < WIFI_PASSWORD.length(); ++i)
+        {
+          EEPROM.write(32 + i, WIFI_PASSWORD[i]);
+        }
+        for (int i = 0; i < UID.length(); ++i)
+        {
+          EEPROM.write(96 + i, UID[i]);
+        }
+        EEPROM.commit();
+  String SwebServer = Shtml;
+  server.send(200, "text/html",SwebServer);
+  delay(10000);
+  ESP.reset();
+  }
+}
+
+bool TestWiFiConnect(void){
+  int Count = 0 ;
+  while(Count < 20 ){
+    if(WiFi.status() == WL_CONNECTED){
+      return true;
+    }
+    delay(500);
+    Serial.print("*");
+    Count++;
+  }
+  return false;
+}
 
 void setup() {
   Serial.begin(115200);
+  WiFi.disconnect();
+  EEPROM.begin(255);
 
-  //ESP8266/FireBase config
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  // GetSSID & PASSWORD
+  for (int i = 0; i < 32; ++i){
+    GWIFI_SSID += char(EEPROM.read(i));
   }
-  Firebase.begin(FIREBASE_HOST,FIREBASE_AUTH);
-  Firebase.reconnectWiFi(true);
-  if(!Firebase.beginStream(FBData,path)){
-    Serial.println("Reason: " + FBData.errorReason());
+  for (int i = 32; i < 96; ++i)
+  {
+    GWIFI_PASSWORD += char(EEPROM.read(i));
+  }
+  for (int i = 96; i < 255; ++i)
+  {
+    GUID += char(EEPROM.read(i));
   }
 
-  Serial.println("");
-  Serial.print("Connected! IP address: ");
-  Serial.println(WiFi.localIP());
+  //Test WiFi Connect
+  WiFi.begin(GWIFI_SSID, GWIFI_PASSWORD);
+  if(TestWiFiConnect()){
+    // ESP8266/FireBase Config
+    Firebase.begin(FIREBASE_HOST,FIREBASE_AUTH);
+    Firebase.reconnectWiFi(true);
+    if(!Firebase.beginStream(FBData,path)){
+      Serial.println("Reason: " + FBData.errorReason());
+    }
+    Serial.println("");
+    Serial.print("Connected! IP address: ");
+    Serial.println(WiFi.localIP());
+    //01
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid", GUID);
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/role", "Owner"); 
+    //02
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/uid", "null");
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/role", "null");
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/email", "null");
+    //03
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/uid", "null");
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/role", "null");
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/email", "null");
+    return;
+  }else{
+    //StartAPMode
+    Serial.println();
+    Serial.print("Configuring access point...");
+    WiFi.softAP(APSSID, APPSK);
+    IPAddress myIP = WiFi.softAPIP();
+    Serial.print("AP IP address: ");
+    Serial.println(myIP);
+    server.on("/", Connecting);
+    server.on("/ConfigESP", ConfigESP8266);
+    server.begin();
+    Serial.println("HTTP server started");
+  }
 
-  //DHT config
+  // DHT config
   dht.begin();
 
-  //DS1302 config
+  // DS1302 config
   Rtc.Begin();
   RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
   if (!Rtc.IsDateTimeValid()) 
@@ -113,26 +267,108 @@ void setup() {
     for(int i = 0; i<3; i++){
       pinMode(Led[i],OUTPUT);      
     }
+
+    //FactoryReset Config
+    pinMode(buttonPin, INPUT_PULLUP);
 }
 
 void loop() {
   delay(500);
 
-  //Get Hum & Temp
-  getDHT11();
+  if(!TestWiFiConnect()){
+    //getEventServer
+    server.handleClient();
+  }else{
+    
+    //FactoryReset
+    buttonState = digitalRead(buttonPin); 
+    if (buttonState != lastButtonState) { 
+      updateState();
+    }
+    lastButtonState = buttonState;
 
-  //Get Water Data
-  getWaterSensor();
+    FacReset();
 
-  //Get DateTime
-  getDS1302();
+    //Get Hum & Temp
+    getDHT11();
 
-  //Get Servo Angle 
-  ServoRoof();
+    //Get Water Data
+    getWaterSensor();
 
-  //Control Led 
-  ControlLed();
+    //Get DateTime
+    getDS1302();
 
+    //Get Servo Angle 
+    ServoRoof();
+
+    //Control Led 
+    ControlLed();
+  }
+
+}
+
+//FactoryReset
+void updateState() {
+  // the button has been just pressed
+  if (buttonState == HIGH) {
+      startPressed = millis();
+  } else {
+      endPressed = millis();
+      holdTime = endPressed - startPressed;
+
+      if (holdTime >= 3000) {
+          for(int i = 0; i<255; i++){
+        EEPROM.write(i,0);
+        delay(20);
+        Serial.println("Deleting");
+        }
+        EEPROM.commit();
+        Serial.println("Deleted EEPROM Complete");
+        UID = "";
+        WIFI_SSID = "";
+        WIFI_PASSWORD = "";
+        GUID = "";
+        GWIFI_SSID = "";
+        GWIFI_PASSWORD = "";
+        }
+        delay(1000);
+        ESP.reset();
+  }
+}
+
+void FacReset(){
+  if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/Reset")){
+    int getActive = FBData.intData();
+    if(getActive == 1){
+      for(int i = 0; i<255; i++){
+        EEPROM.write(i,0);
+        delay(20);
+        Serial.println("Deleting");
+      }
+      EEPROM.commit();
+      Serial.println("Deleted EEPROM Complete");
+      UID = "";
+      WIFI_SSID = "";
+      WIFI_PASSWORD = "";
+      GUID = "";
+      GWIFI_SSID = "";
+      GWIFI_PASSWORD = "";
+      //01
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid", "null");
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/role", "null");
+      //02
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/uid", "null");
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/role", "null");
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/email", "null");
+      //03
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/uid", "null");
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/role", "null");
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/email", "null");
+      delay(1000);
+      ESP.reset();
+    }
+  }
+  
 }
 
 void getDHT11(){
@@ -140,35 +376,33 @@ void getDHT11(){
   Temp = dht.readTemperature();
 
   if (isnan(Hum) || isnan(Temp)){
-    Serial.println("Error read DHT11");
-    Firebase.setString(FBData, path + "DHT11/error", "Read/Connect");
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DHT11/error", "Read/Connect");
   }else{
-    Firebase.setString(FBData, path + "DHT11/error", "Non");    
-    Firebase.setFloat(FBData, path + "DHT11/hum", Hum);
-    Firebase.setFloat(FBData, path + "DHT11/temp", Temp);
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DHT11/error", "Non");    
+    Firebase.setFloat(FBData, path + "/HomeControl/ESP8266/DATA/DHT11/hum", Hum);
+    Firebase.setFloat(FBData, path + "/HomeControl/ESP8266/DATA/DHT11/temp", Temp);
   }
 }
 
 void getWaterSensor(){
   WaterData = analogRead(WATERSENSORPIN);
-  Firebase.setInt(FBData, path + "WATERSENSOR/waterdata", WaterData);
+  Firebase.setInt(FBData, path + "/HomeControl/ESP8266/DATA/WATERSENSOR/waterdata", WaterData);
 }
 
 void getDS1302(){
   RtcDateTime now = Rtc.GetDateTime();
     if (!now.IsValid())
     {
-      Firebase.setString(FBData, path + "DS1302/error", "Read/Connect/Battery"); 
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DS1302/error", "Read/Connect/Battery"); 
     }else{
       printDateTime(now);
-      Firebase.setString(FBData, path + "DS1302/error", "Non");    
-      Firebase.setString(FBData, path + "DS1302/date", datestring);
-      Firebase.setString(FBData, path + "DS1302/time", timestring);   
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DS1302/error", "Non");    
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DS1302/date", datestring);
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DS1302/time", timestring);   
     }
 }
 
-void printDateTime(const RtcDateTime& dt)
-{
+void printDateTime(const RtcDateTime& dt){
     snprintf_P(datestring, 
             countof(datestring),
             PSTR("%02u/%02u/%04u"),
@@ -184,9 +418,9 @@ void printDateTime(const RtcDateTime& dt)
 }
 
 void ServoRoof(){
-  if(Firebase.getString(FBData, path + "Servo/trigger")){
+  if(Firebase.getString(FBData, path + "/HomeControl/ESP8266/DATA/Servo/trigger")){
     String trig = FBData.stringData();
-    if(Firebase.getInt(FBData, path + "Servo/roof") && trig == "Trig"){  
+    if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/Servo/roof") && trig == "Trig"){  
     int angle = FBData.intData();
     if(angle == 180){   
       for (angle = 0; angle <= 180; angle += 1) {  
@@ -207,7 +441,7 @@ void ControlLed(){
   String refLed[] = {"led1","led2","led3"};
 
   for(int i = 0; i<3; i++){
-    if(Firebase.getInt(FBData, path + "LED/" + refLed[i])){  
+    if(Firebase.getInt(FBData, path + "/LED/" + refLed[i])){  
       SLed[i] = FBData.intData();
       digitalWrite(Led[i],SLed[i]);
     }  
