@@ -214,7 +214,50 @@ void setup() {
     Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/uid", "null");
     Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/role", "null");
     Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/email", "null");
-    return;
+    
+    // DHT config
+    dht.begin();
+
+    // DS1302 config
+    Rtc.Begin();
+    RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
+    if (!Rtc.IsDateTimeValid()) 
+      {
+          Serial.println("RTC lost confidence in the DateTime!");
+          Rtc.SetDateTime(compiled);
+      }
+
+      if (Rtc.GetIsWriteProtected())
+      {
+          Serial.println("RTC was write protected, enabling writing now");
+          Rtc.SetIsWriteProtected(false);
+      }
+
+      if (!Rtc.GetIsRunning())
+      {
+          Serial.println("RTC was not actively running, starting now");
+          Rtc.SetIsRunning(true);
+      }
+
+      RtcDateTime now = Rtc.GetDateTime();
+      if (now < compiled) 
+      {
+          Serial.println("RTC is older than compile time!  (Updating DateTime)");
+          Rtc.SetDateTime(compiled);
+      }
+
+      //Servo config
+      Roofservo.attach(D5);
+
+      //Led config
+      for(int i = 0; i<3; i++){
+        pinMode(Led[i],OUTPUT);      
+      }
+
+      //FactoryReset Config
+      pinMode(buttonPin, INPUT_PULLUP);
+      pinMode(LED_BUILTIN, OUTPUT);
+      return;
   }else{
     //StartAPMode
     Serial.println();
@@ -228,65 +271,30 @@ void setup() {
     server.begin();
     Serial.println("HTTP server started");
   }
-
-  // DHT config
-  dht.begin();
-
-  // DS1302 config
-  Rtc.Begin();
-  RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
-  if (!Rtc.IsDateTimeValid()) 
-    {
-        Serial.println("RTC lost confidence in the DateTime!");
-        Rtc.SetDateTime(compiled);
-    }
-
-    if (Rtc.GetIsWriteProtected())
-    {
-        Serial.println("RTC was write protected, enabling writing now");
-        Rtc.SetIsWriteProtected(false);
-    }
-
-    if (!Rtc.GetIsRunning())
-    {
-        Serial.println("RTC was not actively running, starting now");
-        Rtc.SetIsRunning(true);
-    }
-
-    RtcDateTime now = Rtc.GetDateTime();
-    if (now < compiled) 
-    {
-        Serial.println("RTC is older than compile time!  (Updating DateTime)");
-        Rtc.SetDateTime(compiled);
-    }
-
-    //Servo config
-    Roofservo.attach(D5);
-
-    //Led config
-    for(int i = 0; i<3; i++){
-      pinMode(Led[i],OUTPUT);      
-    }
-
-    //FactoryReset Config
-    pinMode(buttonPin, INPUT_PULLUP);
-    pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
   delay(500);
 
-    //FactoryReset
-    buttonState = digitalRead(buttonPin); 
-    if (buttonState != lastButtonState) { 
-      updateState();
-    }
-    lastButtonState = buttonState;
+  //FactoryReset
+  buttonState = digitalRead(buttonPin); 
+  if (buttonState != lastButtonState) { 
+    updateState();
+  }
+  lastButtonState = buttonState;
 
   if(!TestWiFiConnect()){
     //getEventServer
     server.handleClient();
   }else{
+
+    //CheckConnect
+    if(Firebase.getString(FBData, path + "/HomeControl/ESP8266/Connect")){
+    String getCheck = FBData.stringData(); 
+    if(getCheck == "null"){
+      Firebase.setString(FBData, path + "/HomeControl/ESP8266/Connect", "isConnect");       
+    }
+    }
 
     //FactoryReset
     FacReset();
@@ -433,19 +441,11 @@ void printDateTime(const RtcDateTime& dt){
 void ServoRoof(){
   if(Firebase.getString(FBData, path + "/HomeControl/ESP8266/DATA/Servo/trigger")){
     String trig = FBData.stringData();
-    if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/Servo/roof") && trig == "Trig"){  
+    if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/Servo/roof")){  
     int angle = FBData.intData();
-    if(angle == 180){   
-      for (angle = 0; angle <= 180; angle += 1) {  
-        Roofservo.write(angle);
-      }
-    }else{
-      for (angle = 180; angle >= 0; angle -= 1) {  
-      Roofservo.write(angle);
-        }
-      }   
-    }
+    Roofservo.write(angle);
   }
+}
 }
 
 void ControlLed(){
@@ -454,7 +454,7 @@ void ControlLed(){
   String refLed[] = {"led1","led2","led3"};
 
   for(int i = 0; i<3; i++){
-    if(Firebase.getInt(FBData, path + "/LED/" + refLed[i])){  
+    if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/LED/" + refLed[i])){  
       SLed[i] = FBData.intData();
       digitalWrite(Led[i],SLed[i]);
     }  
