@@ -270,16 +270,12 @@ void setup() {
 
     //FactoryReset Config
     pinMode(buttonPin, INPUT_PULLUP);
+    pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
   delay(500);
 
-  if(!TestWiFiConnect()){
-    //getEventServer
-    server.handleClient();
-  }else{
-    
     //FactoryReset
     buttonState = digitalRead(buttonPin); 
     if (buttonState != lastButtonState) { 
@@ -287,6 +283,12 @@ void loop() {
     }
     lastButtonState = buttonState;
 
+  if(!TestWiFiConnect()){
+    //getEventServer
+    server.handleClient();
+  }else{
+
+    //FactoryReset
     FacReset();
 
     //Get Hum & Temp
@@ -315,9 +317,14 @@ void updateState() {
   } else {
       endPressed = millis();
       holdTime = endPressed - startPressed;
-
       if (holdTime >= 3000) {
-          for(int i = 0; i<255; i++){
+        for(int j =0; j<5; j++){
+          delay(500);  
+          digitalWrite(LED_BUILTIN, HIGH);  
+          delay(500);                
+          digitalWrite(LED_BUILTIN, LOW);
+        }
+        for(int i = 0; i<255; i++){
         EEPROM.write(i,0);
         delay(20);
         Serial.println("Deleting");
@@ -332,7 +339,7 @@ void updateState() {
         GWIFI_PASSWORD = "";
         }
         delay(1000);
-        ESP.reset();
+        ESP.reset();   
   }
 }
 
@@ -340,6 +347,12 @@ void FacReset(){
   if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/Reset")){
     int getActive = FBData.intData();
     if(getActive == 1){
+      for(int j =0; j<5; j++){
+        delay(500);  
+        digitalWrite(LED_BUILTIN, HIGH);  
+        delay(500);                
+        digitalWrite(LED_BUILTIN, LOW);
+      }
       for(int i = 0; i<255; i++){
         EEPROM.write(i,0);
         delay(20);
