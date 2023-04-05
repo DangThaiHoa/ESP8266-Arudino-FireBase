@@ -62,7 +62,7 @@ const char success_page[] PROGMEM = R"=====(
 </head>
 
 <body>
-    <h3 style="text-align: center;">Đã thiết lập thiết bị ESP82666, Hãy quay lại ứng dụng và kiểm tra, nếu chưa được hãy thiết lập lại</h3>
+    <h3 style="text-align: center;">Đã thiết lập thiết bị ESP82666 Nếu Led nháy 4 lần là thiết lập thành công, Hãy quay lại ứng dụng và kiểm tra, nếu chưa được hãy thiết lập lại</h3>
 </body>
 
 </html>
@@ -76,7 +76,6 @@ String WIFI_PASSWORD;
 String GUID;
 String GWIFI_SSID;
 String GWIFI_PASSWORD;
-int eepromOffset = 0;
 
 //ESP8266/FireBase config
 #define FIREBASE_HOST "homecontrol-526d0-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -257,6 +256,13 @@ void setup() {
       //FactoryReset Config
       pinMode(buttonPin, INPUT_PULLUP);
       pinMode(LED_BUILTIN, OUTPUT);
+
+      for(int j =0; j<3; j++){
+        delay(500);  
+        digitalWrite(LED_BUILTIN, HIGH);  
+        delay(500);                
+        digitalWrite(LED_BUILTIN, LOW);
+      }
       return;
   }else{
     //StartAPMode
@@ -296,6 +302,12 @@ void loop() {
     }
     }
 
+    //Get Servo Angle 
+    ServoRoof();
+
+    //Control Led 
+    ControlLed();
+
     //FactoryReset
     FacReset();
 
@@ -307,12 +319,6 @@ void loop() {
 
     //Get DateTime
     getDS1302();
-
-    //Get Servo Angle 
-    ServoRoof();
-
-    //Control Led 
-    ControlLed();
   }
 
 }
@@ -449,16 +455,18 @@ void ServoRoof(){
 }
 
 void ControlLed(){
-
-  int SLed[] = {0,0,0};
-  String refLed[] = {"led1","led2","led3"};
-
-  for(int i = 0; i<3; i++){
-    if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/LED/" + refLed[i])){  
-      SLed[i] = FBData.intData();
-      digitalWrite(Led[i],SLed[i]);
+    if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/LED/led1")){  
+      int sLed1 = FBData.intData();
+      digitalWrite(Led[0],sLed1);
     }  
-  }
+    if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/LED/led2")){  
+      int sLed2 = FBData.intData();
+      digitalWrite(Led[1],sLed2);
+    }  
+    if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/LED/led3")){  
+      int sLed3 = FBData.intData();
+      digitalWrite(Led[2],sLed3);
+    }  
 }
 
 
