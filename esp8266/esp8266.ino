@@ -90,6 +90,7 @@ FirebaseJson json;
 #define DHTPIN 5 //D1    
 #define DHTTYPE DHT11  
 DHT dht(DHTPIN, DHTTYPE);
+int pos = 0, num = 0;
 
 //WaterSensor config
 #define WATERSENSORPIN A0    
@@ -191,7 +192,8 @@ void setup() {
   }
 
   // Test WiFi Connect
-  WiFi.begin(GWIFI_SSID, GWIFI_PASSWORD);
+  // WiFi.begin(GWIFI_SSID, GWIFI_PASSWORD);
+  WiFi.begin("QuafBanhMi", "123456789a");
   if(TestWiFiConnect()){
     // ESP8266/FireBase Config
     Firebase.begin(FIREBASE_HOST,FIREBASE_AUTH);
@@ -280,7 +282,7 @@ void setup() {
 }
 
 void loop() {
-  delay(500);
+  delay(1000);
 
   //FactoryReset
   buttonState = digitalRead(buttonPin); 
@@ -411,6 +413,22 @@ void getDHT11(){
     Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DHT11/error", "Non");    
     Firebase.setFloat(FBData, path + "/HomeControl/ESP8266/DATA/DHT11/hum", Hum);
     Firebase.setFloat(FBData, path + "/HomeControl/ESP8266/DATA/DHT11/temp", Temp);
+    if(pos == 10 && num == 10){
+      pos = 0;
+      num = 0;   
+    }else{
+      delay(1000);
+      //Set Pos/Data Temp
+      Firebase.setInt(FBData, path + "/HomeControl/ESP8266/ChartData/Temperature/key" + num  + "/pos", pos); 
+      Firebase.setFloat(FBData, path + "/HomeControl/ESP8266/ChartData/Temperature/key" + num  + "/data", Temp);
+
+      //Set Pos/Data Hum
+      Firebase.setInt(FBData, path + "/HomeControl/ESP8266/ChartData/Humanity/key" + num  + "/pos", pos); 
+      Firebase.setFloat(FBData, path + "/HomeControl/ESP8266/ChartData/Humanity/key" + num  + "/data", Hum);
+
+      num += 1;
+      pos += 1; 
+    }
   }
 }
 
