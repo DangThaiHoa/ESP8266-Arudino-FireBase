@@ -190,7 +190,7 @@ void setup() {
     GUID += char(EEPROM.read(i));
   }
 
-  //Test WiFi Connect
+  // Test WiFi Connect
   WiFi.begin(GWIFI_SSID, GWIFI_PASSWORD);
   if(TestWiFiConnect()){
     // ESP8266/FireBase Config
@@ -297,9 +297,9 @@ void loop() {
     //CheckConnect
     if(Firebase.getString(FBData, path + "/HomeControl/ESP8266/Connect")){
     String getCheck = FBData.stringData(); 
-    if(getCheck == "null"){
-      Firebase.setString(FBData, path + "/HomeControl/ESP8266/Connect", "isConnect");       
-    }
+      if(getCheck == "null"){
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Connect", "isConnect");       
+      }
     }
 
     //Get Servo Angle 
@@ -319,6 +319,9 @@ void loop() {
 
     //Get DateTime
     getDS1302();
+
+    //Get RGB Code
+    RGB();
   }
 
 }
@@ -467,6 +470,32 @@ void ControlLed(){
       int sLed3 = FBData.intData();
       digitalWrite(Led[2],sLed3);
     }  
+}
+
+void RGB(){
+  int red;
+  int green;
+  int blue;
+  if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/RGB/red")){  
+    red = FBData.intData();
+  }  
+  if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/RGB/green")){  
+    green = FBData.intData();
+  }  
+  if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/RGB/blue")){  
+    blue = FBData.intData();
+  }  
+  String gRed = String(red); 
+  String gGreen = String(green); 
+  String gBlue = String(blue); 
+  String p = ",";
+
+  gRed.concat(p);
+  gRed.concat(gGreen);
+  gRed.concat(p);
+  gRed.concat(gBlue);
+  
+  Serial.println(gRed);
 }
 
 
