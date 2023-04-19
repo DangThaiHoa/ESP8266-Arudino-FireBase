@@ -112,6 +112,9 @@ Servo Roofservo;
 //Led config
 int Led[] = {12,13,15};//D6/D7/D8
 
+//RGB
+String gCurrent;
+
 //Var
 float Hum; 
 float Temp;
@@ -193,7 +196,7 @@ void setup() {
 
   // Test WiFi Connect
   // WiFi.begin(GWIFI_SSID, GWIFI_PASSWORD);
-  WiFi.begin("QuafBanhMi", "123456789a");
+  WiFi.begin("Home 2.4Ghz", "homecafe24");
   if(TestWiFiConnect()){
     // ESP8266/FireBase Config
     Firebase.begin(FIREBASE_HOST,FIREBASE_AUTH);
@@ -506,9 +509,17 @@ void RGB(){
   if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/RGB/blue")){  
     blue = FBData.intData();
   }  
-  if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/RGB/OnOff")){  
+  if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/RGB/status")){  
     Trig = FBData.intData();
-  }  
+  } 
+
+  String status;
+  if(Trig == 1){
+    status = "1";
+  }else{
+    status = "0";
+  } 
+
   String gRed = String(red); 
   String gGreen = String(green); 
   String gBlue = String(blue); 
@@ -519,10 +530,13 @@ void RGB(){
   gRed.concat(gGreen);
   gRed.concat(p);
   gRed.concat(gBlue);
+  gRed.concat(p);
+  gRed.concat(status);
 
-  Serial.println("OnOff:" + gTrig);
-
-  Serial.println(gRed);
+  if(gRed != gCurrent){
+    Serial.println(gRed);
+  }
+  gCurrent = gRed;
 }
 
 

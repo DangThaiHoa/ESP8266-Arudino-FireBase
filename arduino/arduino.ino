@@ -1,3 +1,5 @@
+
+#include<string.h>
 //RGB Led Pin
 int redPin = 9;  
 int greenPin = 10; 
@@ -38,21 +40,18 @@ void RGB(){
   if(Serial.available()){
 
     String msg = Serial.readString();
-  
+
     String red = splitString(msg,",",0);
     String green = splitString(msg,",",1);
     String blue = splitString(msg,",",2);
-    String gTrig = splitString(msg,":",1);
-    Serial.print(gTrig);
+    String Trig = splitString(msg,",",3);
 
-    if(gTrig == "1"){
-      digitalWrite(Relay,HIGH);
-    }else{
-      digitalWrite(Relay,LOW);
-    }
-    
+    Serial.print(msg);
+
+    digitalWrite(Relay,Trig.toInt());
     analogWrite(redPin,red.toInt());
     analogWrite(greenPin,green.toInt());
     analogWrite(bluePin,blue.toInt());
+
   }
 }
