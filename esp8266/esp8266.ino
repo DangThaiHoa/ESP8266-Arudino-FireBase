@@ -491,9 +491,12 @@ void ControlLed(){
 }
 
 void RGB(){
+
   int red;
   int green;
   int blue;
+  int Trig;
+
   if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/RGB/red")){  
     red = FBData.intData();
   }  
@@ -503,16 +506,22 @@ void RGB(){
   if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/RGB/blue")){  
     blue = FBData.intData();
   }  
+  if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/RGB/OnOff")){  
+    Trig = FBData.intData();
+  }  
   String gRed = String(red); 
   String gGreen = String(green); 
   String gBlue = String(blue); 
+  String gTrig = String(Trig); 
   String p = ",";
 
   gRed.concat(p);
   gRed.concat(gGreen);
   gRed.concat(p);
   gRed.concat(gBlue);
-  
+
+  Serial.println("OnOff:" + gTrig);
+
   Serial.println(gRed);
 }
 

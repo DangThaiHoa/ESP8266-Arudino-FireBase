@@ -1,7 +1,8 @@
 //RGB Led Pin
 int redPin = 9;  
 int greenPin = 10; 
-int bluePin = 11;  
+int bluePin = 11;
+int Relay = 12;  
 
 //SplitString
 String splitString (String str, String delim, uint16_t pos){
@@ -22,6 +23,7 @@ void setup() {
   pinMode(redPin, OUTPUT);
   pinMode(greenPin, OUTPUT);
   pinMode(bluePin, OUTPUT);
+  pinMode(Relay, OUTPUT);
 }
 
 void loop() {
@@ -34,11 +36,20 @@ void loop() {
 void RGB(){
 
   if(Serial.available()){
-    String msg = Serial.readString();
 
+    String msg = Serial.readString();
+  
     String red = splitString(msg,",",0);
     String green = splitString(msg,",",1);
     String blue = splitString(msg,",",2);
+    String gTrig = splitString(msg,":",1);
+    Serial.print(gTrig);
+
+    if(gTrig == "1"){
+      digitalWrite(Relay,HIGH);
+    }else{
+      digitalWrite(Relay,LOW);
+    }
     
     analogWrite(redPin,red.toInt());
     analogWrite(greenPin,green.toInt());
