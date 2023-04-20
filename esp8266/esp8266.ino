@@ -9,6 +9,7 @@
 #include <ThreeWire.h>  
 #include <RtcDS1302.h>
 #include <Servo.h>
+#include <LiquidCrystal_I2C.h>
 
 //FactoryReset Config 
 int buttonPin = 0;
@@ -63,6 +64,7 @@ const char success_page[] PROGMEM = R"=====(
 
 <body>
     <h3 style="text-align: center;">Đã thiết lập thiết bị ESP82666 Nếu Led nháy 4 lần là thiết lập thành công, Hãy quay lại ứng dụng và kiểm tra, nếu chưa được hãy thiết lập lại</h3>
+    <h3 style="text-align: center;">Nếu sau khi khởi động lại bạn vẫn thấy dòng chữ: "DANG CHO THIET LAP", có thể bạn đã nhập sai tên WiFi hoặt Mật Khẩu</h3>
 </body>
 
 </html>
@@ -87,7 +89,7 @@ String path = "/";
 FirebaseJson json;
 
 //DHT config
-#define DHTPIN 5 //D1    
+#define DHTPIN 13 //D7     
 #define DHTTYPE DHT11  
 DHT dht(DHTPIN, DHTTYPE);
 int pos = 0, num = 0;
@@ -97,27 +99,36 @@ int pos = 0, num = 0;
 
 //DS1302 config
 // CONNECTIONS:
-// DS1302 CLK/SCLK --> D2
+// DS1302 CLK/SCLK --> D4
 // DS1302 DAT/IO --> D3
-// DS1302 RST/CE --> D4
+// DS1302 RST/CE --> D1
 // DS1302 VCC --> 3.3v - 5v
 // DS1302 GND --> GND
-ThreeWire myWire(D3,D2,D4); // IO, SCLK, CE
+ThreeWire myWire(D3,D4,D0); // IO, SCLK, CE
 RtcDS1302<ThreeWire> Rtc(myWire);
 #define countof(a) (sizeof(a) / sizeof(a[0]))
 
 //Servo config
+#define SERVOPIN 15 //D8
 Servo Roofservo;
 
 //Led config
-int Led[] = {12,13,15};//D6/D7/D8
+int Led[] = {14,12};//D5/D6
 
-//RGB
+//RGB Config
 String gCurrent;
+
+//LCD Config
+// CONNECTIONS:
+// SCL --> D1
+// SDA --> D2
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 //Var
 float Hum; 
 float Temp;
+
+int Cangle;
 
 int WaterData;
 
@@ -133,6 +144,8 @@ void Connecting() {
 }
 
 void ConfigESP8266(){
+  //Configuring LCD
+  Configuring();
   WIFI_SSID = server.arg("ssid");
   WIFI_PASSWORD = server.arg("pass");
   if (WIFI_SSID.length() > 0 && WIFI_PASSWORD.length() > 0) {
@@ -176,10 +189,87 @@ bool TestWiFiConnect(void){
   return false;
 }
 
+void ClearlCD(){
+  lcd.clear();
+}
+
+//LCD Config
+void Start(){
+  ClearlCD();
+  lcd.setCursor(4, 0);
+  lcd.print("DANG CHO");
+  lcd.setCursor(4, 1);
+  lcd.print("THIET LAP");
+}
+
+void Configuring(){
+  ClearlCD();
+  lcd.setCursor(1, 0);
+  lcd.print("DANG THIET LAP");
+  for(int j = 0; j <= 2; j++){
+    for(int i = 5; i <= 10; i++){
+    lcd.setCursor(i, 1);
+    lcd.print(".");
+    delay(1000);
+    }
+    lcd.setCursor(5, 1);
+    lcd.print("        ");
+  }
+  lcd.setCursor(1, 1);
+  lcd.print("KHOI DONG LAI");
+}
+
+void CompleteConfig(){
+  ClearlCD();
+  lcd.setCursor(3, 0);
+  lcd.print("THIET LAP");
+  lcd.setCursor(3, 1);
+  lcd.print("THANH CONG");
+}
+
+void Active(){
+  ClearlCD();
+  lcd.setCursor(2, 0);
+  lcd.print("TRANG THAI:");
+  lcd.setCursor(1, 1);
+  lcd.print("DANG HOAT DONG");
+}
+
+void Reset(){
+  ClearlCD();
+  lcd.setCursor(0, 0);
+  lcd.print("DAT LAI THIET BI");
+  lcd.setCursor(4, 1);
+  lcd.print("TRONG:");
+  for(int i = 5; i >= 1; i--){
+    lcd.setCursor(11, 1);
+    lcd.print(i);
+    delay(1000);
+  }
+  lcd.setCursor(6, 1);
+  lcd.print(" ");
+  lcd.setCursor(2, 1);
+  lcd.print("DANG DAT LAI");
+  delay(5000);
+  ClearlCD();
+  lcd.setCursor(6, 0);
+  lcd.print("DANG");
+  lcd.setCursor(1, 1);
+  lcd.print("KHOI DONG LAI");
+  }
+
 void setup() {
   Serial.begin(115200);
   WiFi.disconnect();
   EEPROM.begin(255);
+
+  //LCD Config
+  lcd.begin(16,2);
+  lcd.init();
+  lcd.backlight();
+
+  //Start LCD
+  Start();
 
   // GetSSID & PASSWORD
   for (int i = 0; i < 32; ++i){
@@ -195,9 +285,14 @@ void setup() {
   }
 
   // Test WiFi Connect
-  // WiFi.begin(GWIFI_SSID, GWIFI_PASSWORD);
-  WiFi.begin("Home 2.4Ghz", "homecafe24");
+  WiFi.begin(GWIFI_SSID, GWIFI_PASSWORD);
+  // WiFi.begin("Home 2.4Ghz", "homecafe24");
   if(TestWiFiConnect()){
+    //CompleteConfig LCD
+    CompleteConfig();
+    delay(2000);
+    //Active LCD
+    Active();
     // ESP8266/FireBase Config
     Firebase.begin(FIREBASE_HOST,FIREBASE_AUTH);
     Firebase.reconnectWiFi(true);
@@ -208,7 +303,7 @@ void setup() {
     Serial.print("Connected! IP address: ");
     Serial.println(WiFi.localIP());
     //01
-    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid", GUID);
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid", "lGJo2bpHYiNvqqzNtPnfv4FrmTE2");
     Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/role", "Owner"); 
     //02
     Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/uid", "null");
@@ -251,16 +346,12 @@ void setup() {
       }
 
       //Servo config
-      Roofservo.attach(D5);
+      Roofservo.attach(SERVOPIN);
 
       //Led config
-      for(int i = 0; i<3; i++){
+      for(int i = 0; i<2; i++){
         pinMode(Led[i],OUTPUT);      
       }
-
-      //FactoryReset Config
-      pinMode(buttonPin, INPUT_PULLUP);
-      pinMode(LED_BUILTIN, OUTPUT);
 
       for(int j =0; j<3; j++){
         delay(500);  
@@ -282,11 +373,13 @@ void setup() {
     server.begin();
     Serial.println("HTTP server started");
   }
+
+  //FactoryReset Config
+  pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
-  delay(1000);
-
   //FactoryReset
   buttonState = digitalRead(buttonPin); 
   if (buttonState != lastButtonState) { 
@@ -340,6 +433,8 @@ void updateState() {
       endPressed = millis();
       holdTime = endPressed - startPressed;
       if (holdTime >= 3000) {
+        //Reset LCD
+        Reset();
         for(int j =0; j<5; j++){
           delay(500);  
           digitalWrite(LED_BUILTIN, HIGH);  
@@ -369,6 +464,8 @@ void FacReset(){
   if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/Reset")){
     int getActive = FBData.intData();
     if(getActive == 1){
+      //Reset LCD
+      Reset();
       for(int j =0; j<5; j++){
         delay(500);  
         digitalWrite(LED_BUILTIN, HIGH);  
@@ -469,13 +566,13 @@ void printDateTime(const RtcDateTime& dt){
 }
 
 void ServoRoof(){
-  if(Firebase.getString(FBData, path + "/HomeControl/ESP8266/DATA/Servo/trigger")){
-    String trig = FBData.stringData();
-    if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/Servo/roof")){  
-    int angle = FBData.intData();
-    Roofservo.write(angle);
+  if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/Servo/roof")){  
+  int angle = FBData.intData();
+    if(Cangle != angle){
+      Roofservo.write(angle);
+      Cangle = angle;
+    }
   }
-}
 }
 
 void ControlLed(){
@@ -486,11 +583,7 @@ void ControlLed(){
     if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/LED/led2")){  
       int sLed2 = FBData.intData();
       digitalWrite(Led[1],sLed2);
-    }  
-    if(Firebase.getInt(FBData, path + "/HomeControl/ESP8266/DATA/LED/led3")){  
-      int sLed3 = FBData.intData();
-      digitalWrite(Led[2],sLed3);
-    }  
+    }   
 }
 
 void RGB(){

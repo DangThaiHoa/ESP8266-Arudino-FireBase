@@ -1,5 +1,3 @@
-
-#include<string.h>
 //RGB Led Pin
 int redPin = 9;  
 int greenPin = 10; 
