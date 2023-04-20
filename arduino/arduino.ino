@@ -1,7 +1,7 @@
 //RGB Led Pin
-int redPin = 9;  
+int redPin = 11;  
 int greenPin = 10; 
-int bluePin = 11;
+int bluePin = 9;
 int Relay = 12;  
 
 //SplitString

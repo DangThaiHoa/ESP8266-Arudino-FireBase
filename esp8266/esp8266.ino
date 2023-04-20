@@ -101,7 +101,7 @@ int pos = 0, num = 0;
 // CONNECTIONS:
 // DS1302 CLK/SCLK --> D4
 // DS1302 DAT/IO --> D3
-// DS1302 RST/CE --> D1
+// DS1302 RST/CE --> D0
 // DS1302 VCC --> 3.3v - 5v
 // DS1302 GND --> GND
 ThreeWire myWire(D3,D4,D0); // IO, SCLK, CE
