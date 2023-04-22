@@ -322,26 +322,26 @@ void setup() {
     RtcDateTime compiled = RtcDateTime(__DATE__, __TIME__);
     if (!Rtc.IsDateTimeValid()) 
       {
-          Serial.println("RTC lost confidence in the DateTime!");
           Rtc.SetDateTime(compiled);
       }
 
       if (Rtc.GetIsWriteProtected())
       {
-          Serial.println("RTC was write protected, enabling writing now");
           Rtc.SetIsWriteProtected(false);
       }
 
       if (!Rtc.GetIsRunning())
       {
-          Serial.println("RTC was not actively running, starting now");
           Rtc.SetIsRunning(true);
       }
 
       RtcDateTime now = Rtc.GetDateTime();
       if (now < compiled) 
       {
-          Serial.println("RTC is older than compile time!  (Updating DateTime)");
+          Rtc.SetDateTime(compiled);
+      }
+      else if (now > compiled) 
+      {
           Rtc.SetDateTime(compiled);
       }
 
@@ -539,15 +539,15 @@ void getWaterSensor(){
 
 void getDS1302(){
   RtcDateTime now = Rtc.GetDateTime();
-    if (!now.IsValid())
-    {
-      Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DS1302/error", "Read/Connect/Battery"); 
-    }else{
-      printDateTime(now);
-      Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DS1302/error", "Non");    
-      Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DS1302/date", datestring);
-      Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DS1302/time", timestring);   
-    }
+  if (!now.IsValid())
+  {
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DS1302/error", "Read/Connect/Battery"); 
+  }else{
+    printDateTime(now);
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DS1302/error", "Non");    
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DS1302/date", datestring);
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/DATA/DS1302/time", timestring);   
+  }
 }
 
 void printDateTime(const RtcDateTime& dt){
@@ -631,5 +631,3 @@ void RGB(){
   }
   gCurrent = gRed;
 }
-
-
