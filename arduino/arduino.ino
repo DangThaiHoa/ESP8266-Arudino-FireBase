@@ -18,7 +18,7 @@ String splitString (String str, String delim, uint16_t pos){
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   //config RGB
   pinMode(redPin, OUTPUT);
   pinMode(greenPin, OUTPUT);

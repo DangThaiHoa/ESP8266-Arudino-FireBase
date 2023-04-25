@@ -10,6 +10,10 @@
 #include <RtcDS1302.h>
 #include <Servo.h>
 #include <LiquidCrystal_I2C.h>
+#include <SoftwareSerial.h>
+
+//Serial Config
+SoftwareSerial sSerial(3,1);
 
 //FactoryReset Config 
 int buttonPin = 0;
@@ -260,8 +264,14 @@ void Reset(){
 
 void setup() {
   Serial.begin(115200);
+  //Serial Config
+  sSerial.begin(9600);
   WiFi.disconnect();
   EEPROM.begin(255);
+  
+  //FactoryReset Config
+  pinMode(buttonPin, INPUT_PULLUP);
+  pinMode(LED_BUILTIN, OUTPUT);
 
   //LCD Config
   lcd.begin(16,2);
@@ -303,7 +313,7 @@ void setup() {
     Serial.print("Connected! IP address: ");
     Serial.println(WiFi.localIP());
     //01
-    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid", "lGJo2bpHYiNvqqzNtPnfv4FrmTE2");
+    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid", UID);
     Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/role", "Owner"); 
     //02
     Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/uid", "null");
@@ -373,10 +383,6 @@ void setup() {
     server.begin();
     Serial.println("HTTP server started");
   }
-
-  //FactoryReset Config
-  pinMode(buttonPin, INPUT_PULLUP);
-  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
@@ -616,7 +622,6 @@ void RGB(){
   String gRed = String(red); 
   String gGreen = String(green); 
   String gBlue = String(blue); 
-  String gTrig = String(Trig); 
   String p = ",";
 
   gRed.concat(p);
@@ -627,7 +632,7 @@ void RGB(){
   gRed.concat(status);
 
   if(gRed != gCurrent){
-    Serial.println(gRed);
+    sSerial.println(gRed);
   }
   gCurrent = gRed;
 }
