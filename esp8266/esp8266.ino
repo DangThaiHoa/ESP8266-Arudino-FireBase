@@ -312,18 +312,23 @@ void setup() {
     Serial.println("");
     Serial.print("Connected! IP address: ");
     Serial.println(WiFi.localIP());
-    //01
-    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid", UID);
-    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/role", "Owner"); 
-    //02
-    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/uid", "null");
-    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/role", "null");
-    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/email", "null");
-    //03
-    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/uid", "null");
-    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/role", "null");
-    Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/email", "null");
-    
+    if(Firebase.getString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid")){
+      String gUid = FBData.stringData();
+      if(gUid == "null"){
+        //01
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid", UID);
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/role", "Owner"); 
+        //02
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/uid", "null");
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/role", "null");
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/email", "null");
+        //03
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/uid", "null");
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/role", "null");
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/email", "null");
+      }
+    }
+
     // DHT config
     dht.begin();
 
@@ -460,9 +465,21 @@ void updateState() {
         GUID = "";
         GWIFI_SSID = "";
         GWIFI_PASSWORD = "";
-        }
+
+        //01
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid", "null");
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/role", "null");
+        //02
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/uid", "null");
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/role", "null");
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/email", "null");
+        //03
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/uid", "null");
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/role", "null");
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-03/email", "null");
         delay(1000);
-        ESP.reset();   
+        ESP.reset(); 
+      }  
   }
 }
 
