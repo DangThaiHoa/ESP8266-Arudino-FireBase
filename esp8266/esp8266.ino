@@ -312,11 +312,8 @@ void setup() {
     Serial.println("");
     Serial.print("Connected! IP address: ");
     Serial.println(WiFi.localIP());
-    if(Firebase.getString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid")){
-      String gUid = FBData.stringData();
-      if(gUid == "null"){
         //01
-        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid", UID);
+        Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/uid", GUID);
         Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-01/role", "Owner"); 
         //02
         Firebase.setString(FBData, path + "/HomeControl/ESP8266/Users/UID-02/uid", "null");
